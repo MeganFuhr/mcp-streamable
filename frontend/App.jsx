@@ -1,12 +1,9 @@
 import React from "react";
-import Chat from "./Chat";
 import ChatTools from "./ChatTools";
+import "./global.css";
 
 function App() {
-  return (
-  <><Chat />
-    <ChatTools /></>
-  );
+  return <ChatTools />;
 }
 
 export default App;

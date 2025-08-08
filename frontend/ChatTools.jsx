@@ -1,4 +1,5 @@
 import React, { useState, useRef } from "react";
+import styles from "./ChatTools.module.css";
 
 function ChatTools() {
   const [messages, setMessages] = useState([]);
@@ -63,47 +64,32 @@ function ChatTools() {
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.1)", padding: 24 }}>
-      <div style={{ minHeight: 200, marginBottom: 16, padding: 8, background: "#fafafa", borderRadius: 4, border: "1px solid #eee" }}>
+    <div className={styles.chatContainer}>
+      <div className={styles.messages}>
         {messages.map((msg, i) => (
-          <div key={i} style={{ marginBottom: 8 }}>
-            <span style={{ color: msg.sender === "user" ? "#0078d4" : msg.sender === "tool_result" ? "#008000" : "#333", fontWeight: msg.sender === "user" || msg.sender === "tool_result" ? "bold" : "normal" }}>
-              {msg.sender === "user"
-                ? "You"
-                : msg.sender === "tool_result"
-                ? `Tool result${msg.tool ? ` (${msg.tool})` : ""}`
-                : msg.text.startsWith("Tool result:")
-                ? (() => {
-                    // Try to extract tool name from the message text
-                    const match = msg.text.match(/Tool result: ([^:]+): (.+)/);
-                    const toolName = match ? match[1] : "";
-                    return `Tool result${toolName ? ` (${toolName})` : ""}`;
-                  })()
-                : "Bot"}:
-            </span>
-            {/* If this is a tool_result, only show the value after the last colon and space */}
-            {msg.sender === "tool_result"
-              ? msg.text
-              : msg.sender === "bot" && msg.text.startsWith("Tool result:")
-              ? (() => {
-                  // Extract just the value after the last colon and space
-                  const match = msg.text.match(/Tool result: ([^:]+): (.+)/);
-                  return match ? match[2] : msg.text;
-                })()
-              : msg.text}
+          <div key={i} className={styles.messageRow}>
+            {msg.sender === "user" ? (
+              <div className={styles.userMessage}>{msg.text}</div>
+            ) : msg.sender === "tool_result" ? (
+              <div className={styles.toolMessage}>
+                Tool result{msg.tool ? ` (${msg.tool})` : ""}: {msg.text}
+              </div>
+            ) : (
+              <div className={styles.botMessage}>{msg.text}</div>
+            )}
           </div>
         ))}
       </div>
-      <form onSubmit={handleSend} style={{ display: "flex", gap: 8 }}>
+      <form onSubmit={handleSend} className={styles.formRow}>
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Type your message..."
           required
-          style={{ flex: 1, padding: 8, borderRadius: 4, border: "1px solid #ccc" }}
+          className={styles.input}
         />
-        <button type="submit" disabled={loading} style={{ padding: "8px 16px", borderRadius: 4, border: "none", background: "#0078d4", color: "#fff", cursor: "pointer" }}>
+        <button type="submit" disabled={loading} className={styles.button}>
           Send
         </button>
       </form>
