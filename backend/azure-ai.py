@@ -18,6 +18,7 @@ app = FastAPI()
 # Tool function: get_current_time
 async def get_current_time(ticketID=None):
     # Use ticketID as needed
+    print(ticketID)
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Azure OpenAI streaming handler (text only)
@@ -55,6 +56,10 @@ async def stream_azure(request: Request):
 @app.get("/stream-tool")
 async def stream_tool_azure(request: Request):
     prompt = request.query_params.get("prompt", "Hello")
+    # Accept tool arguments from query params as JSON string
+    import json
+    tool_args_raw = request.query_params.get("tool_args")
+    tool_args = json.loads(tool_args_raw) if tool_args_raw else {}
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
     azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
     deployment = os.getenv("AZURE_OPENAI_DEPLOYMENT")
@@ -67,6 +72,7 @@ async def stream_tool_azure(request: Request):
         azure_endpoint=azure_endpoint,
         api_version="2023-05-15"
     )
+    # Define tools flexibly
     tools = [
         {
             "type": "function",
@@ -81,18 +87,22 @@ async def stream_tool_azure(request: Request):
                     "required": ["ticketID"]
                 }
             }
-        }
+        },
+        # Add more tool definitions here as needed
     ]
+    # Build messages flexibly for any tool
     messages = [
-        {"role": "user", "content": prompt},
-        {
+        {"role": "user", "content": prompt}
+    ]
+    # If tool_args provided, add tool call message for each tool
+    for tool_name, args in tool_args.items():
+        messages.append({
             "role": "tool",
             "content": None,
-            "tool_call_id": "call-1",
-            "name": "get_current_time",
-            "arguments": {"ticketID": ticket_id_value}
-        }
-    ]
+            "tool_call_id": f"call-{tool_name}",
+            "name": tool_name,
+            "arguments": args
+        })
     stream = await client.chat.completions.create(
         model=deployment,
         messages=messages,
@@ -112,11 +122,21 @@ async def stream_tool_azure(request: Request):
                     got_event = True
                     for tool_call in delta.tool_calls:
                         function = getattr(tool_call, "function", None)
-                        if function and getattr(function, "name", None) == "get_current_time":
-                            args = getattr(function, "arguments", {})
+                        tool_name = getattr(function, "name", None)
+                        args = getattr(function, "arguments", {})
+                        # If arguments is a string, parse it as JSON
+                        import json
+                        if isinstance(args, str):
+                            try:
+                                args = json.loads(args)
+                            except Exception:
+                                args = {}
+                        # Dispatch to correct tool function
+                        if tool_name == "get_current_time":
                             ticket_id = args.get("ticketID")
                             current_time = await get_current_time(ticket_id)
                             yield {"data": f"Tool result: get_current_time: {current_time}"}
+                        # Add more tool dispatches here as needed
         if not got_event:
             yield {"data": "[No response from Azure OpenAI]"}
     return EventSourceResponse(event_generator())
