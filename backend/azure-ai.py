@@ -8,7 +8,10 @@ import asyncio
 from openai import AsyncAzureOpenAI
 from datetime import datetime
 
+# Load environment variables from .env file if it exists
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app = FastAPI()
 
@@ -40,7 +43,7 @@ async def mcp_stream(prompt):
         if delta:
             yield delta
 
-@app.get("/stream-azure")
+@app.get("/stream")
 async def stream_azure(request: Request):
     prompt = request.query_params.get("prompt", "Hello")
     async def event_generator():
@@ -48,7 +51,7 @@ async def stream_azure(request: Request):
             yield {"data": chunk}
     return EventSourceResponse(event_generator())
 
-@app.get("/stream-tool-azure")
+@app.get("/stream-tool")
 async def stream_tool_azure(request: Request):
     prompt = request.query_params.get("prompt", "Hello")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
