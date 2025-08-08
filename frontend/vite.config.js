@@ -12,6 +12,7 @@ export default defineConfig({
     open: true,
     proxy: {
       "/stream": "http://localhost:8000",
+      "/stream-tool": "http://localhost:8000",
     },
   },
 });
