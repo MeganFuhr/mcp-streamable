@@ -19,19 +19,21 @@ function ChatTools() {
         const data = JSON.parse(event.data);
         if (data.data) {
           if (data.data.startsWith("Tool result:")) {
-            setMessages((msgs) => [...msgs, { sender: "tool_result", text: data.data }]);
+            // Extract tool name from the backend message
+            // Format: "Tool result: <tool_name>: <result>"
+            const match = data.data.match(/Tool result: ([^:]+): (.+)/);
+            const toolName = match ? match[1] : "Unknown tool";
+            const result = match ? match[2] : data.data;
+            setMessages((msgs) => [...msgs, { sender: "tool_result", text: result, tool: toolName }]);
           } else {
             botMsg += data.data;
             setMessages((msgs) => {
-              // Append to last bot message or add new
               const last = msgs[msgs.length - 1];
               if (last && last.sender === "bot" && botMsgIndex === msgs.length - 1) {
-                // Update last bot message
                 const updated = [...msgs];
                 updated[botMsgIndex] = { sender: "bot", text: botMsg };
                 return updated;
               } else {
-                // Add new bot message
                 botMsgIndex = msgs.length;
                 return [...msgs, { sender: "bot", text: botMsg }];
               }
@@ -66,8 +68,29 @@ function ChatTools() {
         {messages.map((msg, i) => (
           <div key={i} style={{ marginBottom: 8 }}>
             <span style={{ color: msg.sender === "user" ? "#0078d4" : msg.sender === "tool_result" ? "#008000" : "#333", fontWeight: msg.sender === "user" || msg.sender === "tool_result" ? "bold" : "normal" }}>
-              {msg.sender === "user" ? "You" : msg.sender === "tool_result" ? "Tool result" : "Bot"}:
-            </span> {msg.text}
+              {msg.sender === "user"
+                ? "You"
+                : msg.sender === "tool_result"
+                ? `Tool result${msg.tool ? ` (${msg.tool})` : ""}`
+                : msg.text.startsWith("Tool result:")
+                ? (() => {
+                    // Try to extract tool name from the message text
+                    const match = msg.text.match(/Tool result: ([^:]+): (.+)/);
+                    const toolName = match ? match[1] : "";
+                    return `Tool result${toolName ? ` (${toolName})` : ""}`;
+                  })()
+                : "Bot"}:
+            </span>
+            {/* If this is a tool_result, only show the value after the last colon and space */}
+            {msg.sender === "tool_result"
+              ? msg.text
+              : msg.sender === "bot" && msg.text.startsWith("Tool result:")
+              ? (() => {
+                  // Extract just the value after the last colon and space
+                  const match = msg.text.match(/Tool result: ([^:]+): (.+)/);
+                  return match ? match[2] : msg.text;
+                })()
+              : msg.text}
           </div>
         ))}
       </div>

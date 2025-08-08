@@ -90,11 +90,11 @@ async def stream_tool(request: Request):
                     got_event = True
                     for tool_call in delta.tool_calls:
                         # Extract tool name from function
-                        function = getattr(tool_call, "function", None)
-                        if function and getattr(function, "name", None) == "get_current_time":
-                            current_time = await get_current_time()
-                            # Send tool result as a string under 'data' for SSE compatibility
-                            yield {"data": f"Tool result: {current_time}"}
+                                    function = getattr(tool_call, "function", None)
+                                    if function and getattr(function, "name", None) == "get_current_time":
+                                        current_time = await get_current_time()
+                                        # Send tool result as a string under 'data' for SSE compatibility
+                                        yield {"data": f"Tool result: get_current_time: {current_time}"}
         if not got_event:
             yield {"data": "[No response from OpenAI]"}
     return EventSourceResponse(event_generator())
