@@ -16,7 +16,8 @@ load_dotenv()
 app = FastAPI()
 
 # Tool function: get_current_time
-async def get_current_time():
+async def get_current_time(ticketID=None):
+    # Use ticketID as needed
     return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 # Azure OpenAI streaming handler (text only)
@@ -74,12 +75,24 @@ async def stream_tool_azure(request: Request):
                 "description": "Returns the current server time.",
                 "parameters": {
                     "type": "object",
-                    "properties": {}
+                    "properties": {
+                        "ticketID": {"type": "string"}
+                    },
+                    "required": ["ticketID"]
                 }
             }
         }
     ]
-    messages = [{"role": "user", "content": prompt}]
+    messages = [
+        {"role": "user", "content": prompt},
+        {
+            "role": "tool",
+            "content": None,
+            "tool_call_id": "call-1",
+            "name": "get_current_time",
+            "arguments": {"ticketID": ticket_id_value}
+        }
+    ]
     stream = await client.chat.completions.create(
         model=deployment,
         messages=messages,
@@ -100,7 +113,9 @@ async def stream_tool_azure(request: Request):
                     for tool_call in delta.tool_calls:
                         function = getattr(tool_call, "function", None)
                         if function and getattr(function, "name", None) == "get_current_time":
-                            current_time = await get_current_time()
+                            args = getattr(function, "arguments", {})
+                            ticket_id = args.get("ticketID")
+                            current_time = await get_current_time(ticket_id)
                             yield {"data": f"Tool result: get_current_time: {current_time}"}
         if not got_event:
             yield {"data": "[No response from Azure OpenAI]"}
